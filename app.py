@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, session
 import sqlite3
-from database.db import get_db, init_db, seed_db, create_user, get_user_by_email
+from database.db import get_db, init_db, seed_db, create_user, get_user_by_email, get_user_by_id, get_expenses_by_user
 from werkzeug.security import check_password_hash
 
 app = Flask(__name__)
@@ -104,7 +104,58 @@ def logout():
 
 @app.route("/profile")
 def profile():
-    return "Profile page — coming in Step 4"
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+
+    user = get_user_by_id(session["user_id"])
+    if not user:
+        session.clear()
+        return redirect(url_for("login"))
+
+    expenses = get_expenses_by_user(session["user_id"])
+
+    # Compute stats
+    count = len(expenses)
+    month_total = sum(e["amount"] for e in expenses)
+
+    # Top category
+    cat_totals = {}
+    for e in expenses:
+        cat = e["category"]
+        cat_totals[cat] = cat_totals.get(cat, 0.0) + e["amount"]
+
+    top_category = "—"
+    if cat_totals:
+        top_category = max(cat_totals, key=cat_totals.get)
+
+    daily_avg = month_total / 30.0 if count > 0 else 0.0
+
+    stats = {
+        "month_total": month_total,
+        "count": count,
+        "top_category": top_category,
+        "daily_avg": daily_avg
+    }
+
+    # Category totals with percentages
+    category_totals = []
+    if month_total > 0:
+        sorted_cats = sorted(cat_totals.items(), key=lambda x: x[1], reverse=True)
+        for cat, total in sorted_cats:
+            percent = (total / month_total) * 100
+            category_totals.append({
+                "category": cat,
+                "total": total,
+                "percent": percent
+            })
+
+    return render_template(
+        "profile.html",
+        user=user,
+        stats=stats,
+        category_totals=category_totals,
+        expenses=expenses
+    )
 
 
 @app.route("/expenses/add")

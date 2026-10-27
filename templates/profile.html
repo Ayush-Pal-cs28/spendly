@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% from "_components.html" import money, short_date, category_badge, stat_card, empty_state %}
+
+{% block title %}Profile — Spendly{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/profile.css') }}">
+{% endblock %}
+
+{% block content %}
+{#
+  Template context expected from the route:
+    user            {name, email, created_at}
+    stats           {month_total, count, top_category, daily_avg}
+    category_totals [{category, total, percent}]   (highest first)
+    expenses        [{id, amount, category, date, description}]  (newest first)
+#}
+<section class="profile">
+
+    <header class="profile-header">
+        <div class="profile-id">
+            <span class="profile-avatar" aria-hidden="true">{{ user.name[:1]|upper }}</span>
+            <div>
+                <h1 class="profile-name">{{ user.name }}</h1>
+                <p class="profile-meta">
+                    {{ user.email }}
+                    {% if user.created_at %}· Member since {{ user.created_at[:4] }}{% endif %}
+                </p>
+            </div>
+        </div>
+        <a href="{{ url_for('add_expense') }}" class="btn-primary profile-add">
+            {{ icon('plus', 16) }} Add expense
+        </a>
+    </header>
+
+    <div class="stat-grid">
+        {{ stat_card("This month", money(stats.month_total), "wallet", "Total spent") }}
+        {{ stat_card("Transactions", stats.count|default(0), "list", "Recorded so far") }}
+        {{ stat_card("Top category", stats.top_category|default("—"), "tag", "Biggest share") }}
+        {{ stat_card("Daily average", money(stats.daily_avg), "trending-up", "This month") }}
+    </div>
+
+    <div class="profile-grid">
+
+        <section class="card" aria-labelledby="cat-title">
+            <h2 class="card__title" id="cat-title">Spending by category</h2>
+            {% if category_totals %}
+            <ul class="cat-list">
+                {% for c in category_totals %}
+                <li class="cat-row">
+                    {{ category_badge(c.category, label=False) }}
+                    <div class="cat-row__body">
+                        <div class="cat-row__head">
+                            <span class="cat-row__name">{{ c.category }}</span>
+                            <span class="cat-row__amount">{{ money(c.total) }}</span>
+                        </div>
+                        <div class="cat-bar" role="img" aria-label="{{ c.percent|round|int }}% of spending">
+                            <span class="cat-bar__fill cat-{{ c.category|lower }}" style="width: {{ c.percent }}%"></span>
+                        </div>
+                    </div>
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p class="card__empty">Category totals appear once you add expenses.</p>
+            {% endif %}
+        </section>
+
+        <section class="card card--scrollable" aria-labelledby="recent-title">
+            <div class="card__head">
+                <h2 class="card__title" id="recent-title">Recent expenses</h2>
+            </div>
+
+            {% if expenses %}
+            <div class="exp-table-wrapper">
+                <table class="exp-table">
+                    <thead>
+                        <tr>
+                            <th scope="col">Date</th>
+                            <th scope="col">Description</th>
+                            <th scope="col">Category</th>
+                            <th scope="col" class="num">Amount</th>
+                            <th scope="col"><span class="sr-only">Actions</span></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for e in expenses %}
+                        <tr>
+                            <td data-label="Date"><time datetime="{{ e.date }}">{{ short_date(e.date) }}</time></td>
+                            <td data-label="Description" class="exp-desc">{{ e.description or e.category }}</td>
+                            <td data-label="Category">{{ category_badge(e.category) }}</td>
+                            <td data-label="Amount" class="num">{{ money(e.amount) }}</td>
+                            <td class="exp-actions-cell">
+                                <div class="exp-actions">
+                                    <a href="{{ url_for('edit_expense', id=e.id) }}" class="icon-btn"
+                                       aria-label="Edit {{ e.description or e.category }}">{{ icon('pencil', 16) }}</a>
+                                    <form method="post" action="{{ url_for('delete_expense', id=e.id) }}"
+                                          data-confirm="Delete this expense? This can't be undone.">
+                                        <button type="submit" class="icon-btn icon-btn--danger"
+                                                aria-label="Delete {{ e.description or e.category }}">{{ icon('trash-2', 16) }}</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            {{ empty_state("No expenses yet", "Add your first expense to see your spending take shape.",
+                           "Add expense", url_for('add_expense')) }}
+            {% endif %}
+        </section>
+
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/profile.js') }}"></script>
+{% endblock %}
