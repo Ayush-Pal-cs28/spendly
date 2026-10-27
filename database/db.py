@@ -92,6 +92,36 @@ def get_user_by_email(email):
         conn.close()
 
 
+def get_user_by_id(user_id):
+    """Fetch user record by ID."""
+    conn = get_db()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("SELECT id, name, email, created_at FROM users WHERE id = ?", (user_id,))
+        return cursor.fetchone()
+    finally:
+        conn.close()
+
+
+def get_expenses_by_user(user_id):
+    """Fetch all expenses for a given user, newest first."""
+    conn = get_db()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            """
+            SELECT id, user_id, amount, category, date, description, created_at
+            FROM expenses
+            WHERE user_id = ?
+            ORDER BY date DESC, id DESC
+            """,
+            (user_id,)
+        )
+        return cursor.fetchall()
+    finally:
+        conn.close()
+
+
 def create_user(name, email, password):
     """Creates a new user with a hashed password. Returns True on success, raises sqlite3.IntegrityError if email exists."""
     conn = get_db()

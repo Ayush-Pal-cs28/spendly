@@ -1,0 +1,44 @@
+{% from "_icons.html" import icon %}
+
+{# Formatting helpers ------------------------------------------------ #}
+{% macro money(amount) -%}
+    ₹{{ "{:,.2f}".format(amount|default(0)) }}
+{%- endmacro %}
+
+{% macro short_date(iso) -%}
+    {%- set months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'] -%}
+    {{ iso[8:10]|int }} {{ months[iso[5:7]|int - 1] }}
+{%- endmacro %}
+
+{# Category chip: icon tile + label. Class cat-<name> sets the colours. #}
+{% macro category_badge(category, label=True) -%}
+    {%- set icons = {'Food': 'utensils', 'Transport': 'car', 'Bills': 'receipt',
+        'Health': 'heart-pulse', 'Entertainment': 'clapperboard',
+        'Shopping': 'shopping-bag', 'Other': 'ellipsis'} -%}
+    <span class="cat-badge cat-{{ category|lower }}">
+        {{ icon(icons.get(category, 'ellipsis'), 16) }}
+        {%- if label %}<span>{{ category }}</span>{% endif %}
+    </span>
+{%- endmacro %}
+
+{# Summary card: label, big figure, optional hint line. #}
+{% macro stat_card(label, value, icon_name, hint="") -%}
+    <article class="stat-card">
+        <div class="stat-card__top">
+            <span class="stat-card__label">{{ label }}</span>
+            <span class="stat-card__icon">{{ icon(icon_name, 18) }}</span>
+        </div>
+        <p class="stat-card__value">{{ value }}</p>
+        {% if hint %}<p class="stat-card__hint">{{ hint }}</p>{% endif %}
+    </article>
+{%- endmacro %}
+
+{# Empty state with a primary action. #}
+{% macro empty_state(title, text, cta_label, cta_href) -%}
+    <div class="empty-state">
+        <span class="empty-state__icon">{{ icon('inbox', 28) }}</span>
+        <h3 class="empty-state__title">{{ title }}</h3>
+        <p class="empty-state__text">{{ text }}</p>
+        <a href="{{ cta_href }}" class="btn-primary">{{ cta_label }}</a>
+    </div>
+{%- endmacro %}
