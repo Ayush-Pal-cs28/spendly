@@ -1,5 +1,5 @@
 import sqlite3
-from werkzeug.security import generate_password_hash
+from werkzeug.security import generate_password_hash, check_password_hash
 
 DATABASE = "spendly.db"
 
@@ -79,6 +79,17 @@ def seed_db():
 
     conn.commit()
     conn.close()
+
+
+def get_user_by_email(email):
+    """Fetches a user record by email."""
+    conn = get_db()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("SELECT * FROM users WHERE email = ?", (email,))
+        return cursor.fetchone()
+    finally:
+        conn.close()
 
 
 def create_user(name, email, password):
